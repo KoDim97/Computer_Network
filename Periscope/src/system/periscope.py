@@ -1,6 +1,6 @@
-from Periscope.src.geometry import *
-from Periscope.src.system.mirror import Mirror
-from Periscope.src.system.target import Target
+from src.geometry import *
+from src.system.mirror import Mirror
+from src.system.target import Target
 
 class MirrorLocation(Enum):
     UP = 1

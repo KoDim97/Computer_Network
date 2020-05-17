@@ -1,5 +1,5 @@
 import json
-from Periscope.src.geometry import Point3d, Vector
+from src.geometry import Point3d, Vector
 from pathlib import Path
 
 def get_project_root() -> Path:

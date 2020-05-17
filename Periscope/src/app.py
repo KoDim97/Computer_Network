@@ -1,10 +1,10 @@
 from enum import Enum
-from Periscope.src.render import Renderer, pygame
-from Periscope.src.system.periscope import Periscope, MirrorLocation, Target
-from Periscope.src.parser import parse, get_project_root
-from Periscope.src.geometry import *
+from src.render import Renderer, pygame
+from src.system.periscope import Periscope, MirrorLocation, Target
+from src.parser import parse, get_project_root
+from src.geometry import *
 import multiprocessing as mp
-from Periscope.src.algorithms.direct import DirectAlgorithm, Triangle, Point3d
+from src.algorithms.direct import DirectAlgorithm, Triangle, Point3d
 import sys
 import datetime
 
@@ -23,10 +23,12 @@ class PeriscopeApplication:
             self,
             input_model: str = '2d',
             algorithm: SolveAlgorithm = SolveAlgorithm.DIRECT,
+            mode: str = '',
     ):
         self.log_list = []
         pygame.init()
         self.input_model = input_model
+        self.mode = mode
         config = parse(input_model)
 
         self.periscope:Periscope = Periscope(config)
@@ -60,7 +62,7 @@ class PeriscopeApplication:
                             args=(self.plane_3_queue, self.plane_3_points, self.periscope, MirrorLocation.THIRD))
         else:  # algorithm == SolveAlgorithm.NEURAL_NET:
             from keras.models import load_model
-            from Periscope.src.algorithms.net import NeuralNetAlgorithm
+            from src.algorithms.net import NeuralNetAlgorithm
             model = load_model(str(get_project_root()) + '\\src\\neuralnet\\' + self.input_model + '_model.h5')
             self.up_plane_process: mp.Process = mp.Process(target=NeuralNetAlgorithm.run,
                         args=(self.up_plane_queue, self.up_plane_points, self.periscope, MirrorLocation.UP, model))
@@ -135,29 +137,32 @@ class PeriscopeApplication:
                          Point3d(tee.location.x, 0.3, 0.5)
                          ))
 
-            ###
-            delta = 0.1
-            delta_aim = Point3d(p_aim.x + delta, p_aim.y + delta, p_aim.z)
-            ret_ray = Ray(delta_aim, Vector(p3_intersect, p_aim))
+            if mode == 'retroref':
+                delta = 0.1
+                delta_aim = Point3d(p_aim.x + delta, p_aim.y + delta, p_aim.z)
+                ret_ray = Ray(delta_aim, Vector(p3_intersect, p_aim))
 
-            p3_new = ret_ray.intersect_plane(self.periscope.mirror_3.triangle)
+                p3_new = ret_ray.intersect_plane(self.periscope.mirror_3.triangle)
 
-            p2_new = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
-                intersect_plane(self.periscope.mirror_up.triangle)
+                p2_new = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
+                    intersect_plane(self.periscope.mirror_up.triangle)
 
-            p1_new = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
-                reflect_plane(self.periscope.mirror_up.triangle).intersect_plane(self.periscope.mirror_down.triangle)
+                p1_new = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
+                    reflect_plane(self.periscope.mirror_up.triangle).intersect_plane(self.periscope.mirror_down.triangle)
 
-            target = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
-                reflect_plane(self.periscope.mirror_up.triangle).reflect_plane(self.periscope.mirror_down.triangle).dir
-            p5 = Point3d()
-            len = 0.25
-            p5.x = (p1_new.x + len * target.x)
-            p5.y = (p1_new.y + len * target.y)
-            p5.z = (p1_new.z + len * target.z)
-            ray_ret = (p5.get_point(), p1_new.get_point(), p2_new.get_point(), p3_new.get_point())
-            ###
-            self.renderer.render(p1_intersect, p2_intersect, p3_intersect, tee, p_aim, ray_ret)
+                target = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
+                    reflect_plane(self.periscope.mirror_up.triangle).reflect_plane(self.periscope.mirror_down.triangle).dir
+                p5 = Point3d()
+                len = 0.25
+                p5.x = (p1_new.x + len * target.x)
+                p5.y = (p1_new.y + len * target.y)
+                p5.z = (p1_new.z + len * target.z)
+                ray_ret = (p5.get_point(), p1_new.get_point(), p2_new.get_point(), p3_new.get_point(), p3_intersect.get_point())
+                self.renderer.render(p1_intersect, p2_intersect, p3_intersect, tee, p_aim, ray_ret)
+                ###
+            else:
+                self.renderer.render(p1_intersect, p2_intersect, p3_intersect, tee, p_aim)
+
             exit_app, need_rebuild = self.__move_target()
 
             if need_rebuild:
@@ -220,7 +225,12 @@ if __name__ == '__main__':
     if n > 2 and sys.argv[2] == 'net':
         algorithm = SolveAlgorithm.NEURAL_NET
 
+    if n > 3 and sys.argv[3] == 'retroref':
+        mode = 'retroref'
+    else:
+        mode = ''
+
     input_model: str = 'my_conf'
     algorithm: SolveAlgorithm = SolveAlgorithm.NEURAL_NET
-    app = PeriscopeApplication(input_model, algorithm)
+    app = PeriscopeApplication(input_model, algorithm, mode)
     app.run()

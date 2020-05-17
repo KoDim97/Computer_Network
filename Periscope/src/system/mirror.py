@@ -1,4 +1,4 @@
-from Periscope.src.geometry import *
+from src.geometry import *
 
 class Mirror:
     def __init__(self, triangle: Triangle):

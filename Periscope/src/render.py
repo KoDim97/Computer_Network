@@ -4,8 +4,8 @@ from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
-from Periscope.src.system.periscope import Periscope
-from Periscope.src.system.target import Target
+from src.system.periscope import Periscope
+from src.system.target import Target
 
 RED = (1.0, 0., 0.)
 WHITE = (1., 1., 1.)
@@ -75,7 +75,7 @@ def draw_sphere(coords, radius, color_s = BLUE):
 
 class Renderer:
     def __init__(self, periscope: Periscope = None):
-        display = (800, 500)
+        display = (1000, 700)
         pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
 
         gluPerspective(45, (display[0] / display[1]), 0.0, 10.0)
@@ -96,16 +96,23 @@ class Renderer:
         pygame.display.flip()
 
 
-    def __render_geometry(self, p1_intersect, p2_intersect, p3_intersect,ray_ret,  target: Target, p_aim):
+    def __render_geometry(self, p1_intersect, p2_intersect, p3_intersect, ray_ret, target: Target, p_aim):
 
         draw_lines(self.periscope.mirror_down.triangle.get_points(), True)
         draw_lines(self.periscope.mirror_up.triangle.get_points(), True)
         draw_lines(self.periscope.mirror_3.triangle.get_points(), True)
 
-        draw_lines((self.periscope.laser.startPos.get_point(), p1_intersect.get_point(),
-                    p2_intersect.get_point(), p3_intersect.get_point(), p_aim.get_point()), False, RED)
+
         if ray_ret:
-            draw_lines(ray_ret, False, GREEN)
+            draw_lines(self.periscope.mirror_3.triangle.get_points(), True, BLUE)
+            draw_lines((self.periscope.laser.startPos.get_point(), p1_intersect.get_point(),
+                        p2_intersect.get_point(), p3_intersect.get_point()), False, RED)
+            draw_lines(ray_ret, False, RED)
+        else:
+            draw_lines(self.periscope.mirror_3.triangle.get_points(), True)
+            draw_lines((self.periscope.laser.startPos.get_point(), p1_intersect.get_point(),
+                        p2_intersect.get_point(), p3_intersect.get_point(), p_aim.get_point()), False, RED)
+
 
         draw_sphere(target.location.get_point(), target.radius)
         draw_sphere(p_aim.get_point(), 0.004, GREEN)

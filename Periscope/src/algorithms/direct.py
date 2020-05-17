@@ -1,7 +1,7 @@
 import math
 
-from Periscope.src.geometry import *
-from Periscope.src.system.periscope import *
+from src.geometry import *
+from src.system.periscope import *
 import multiprocessing as mp
 
 

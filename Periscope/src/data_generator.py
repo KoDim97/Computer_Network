@@ -1,8 +1,8 @@
-from Periscope.src.parser import parse
-from Periscope.src.system.periscope import Periscope, Target, MirrorLocation
+from src.parser import parse
+from src.system.periscope import Periscope, Target, MirrorLocation
 import random
-from Periscope.src.geometry import *
-from Periscope.src.render import Renderer, pygame
+from src.geometry import *
+from src.render import Renderer, pygame
 import math
 
 class Generator:
