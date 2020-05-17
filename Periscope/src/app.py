@@ -2,7 +2,7 @@ from enum import Enum
 from Periscope.src.render import Renderer, pygame
 from Periscope.src.system.periscope import Periscope, MirrorLocation, Target
 from Periscope.src.parser import parse, get_project_root
-# from Periscope.src.system.ge
+from Periscope.src.geometry import *
 import multiprocessing as mp
 from Periscope.src.algorithms.direct import DirectAlgorithm, Triangle, Point3d
 import sys
@@ -35,6 +35,7 @@ class PeriscopeApplication:
                      Point3d(0.5, 0.4, 0.1),
                      Point3d(0.2, 0.6, 0.5)
                      ))
+        p_target = Point3d(0.62, 0.66, 0)
         tee = Target(p_target, config["target_radius"])
         self.periscope.set_target(tee)
 
@@ -128,21 +129,35 @@ class PeriscopeApplication:
                 intersect_plane(self.periscope.mirror_up.triangle)
             p3_intersect = self.periscope.laser.reflect_plane(self.periscope.mirror_down.triangle).\
                 reflect_plane(self.periscope.mirror_up.triangle).intersect_plane(self.periscope.mirror_3.triangle)
-
-            delta = 0.01
-            #def __init__(self, location: Point3d,  direction: Vector):
-            # ret_ray = Ray()
-            p3_new = Point3d(p3_intersect.x + delta, p3_intersect.y + delta, p3_intersect.z)
-            # p2_new =
-
-
-            p_aim =  self.periscope.ray_to_aim().intersect_plane(
+            p_aim = self.periscope.ray_to_aim().intersect_plane(
                 Triangle(Point3d(tee.location.x, 0.5, 0.2),
                          Point3d(tee.location.x, 0.4, 0.1),
                          Point3d(tee.location.x, 0.3, 0.5)
                          ))
-            self.renderer.render(p1_intersect, p2_intersect, p3_intersect, tee, p_aim)
 
+            ###
+            delta = 0.1
+            delta_aim = Point3d(p_aim.x + delta, p_aim.y + delta, p_aim.z)
+            ret_ray = Ray(delta_aim, Vector(p3_intersect, p_aim))
+
+            p3_new = ret_ray.intersect_plane(self.periscope.mirror_3.triangle)
+
+            p2_new = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
+                intersect_plane(self.periscope.mirror_up.triangle)
+
+            p1_new = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
+                reflect_plane(self.periscope.mirror_up.triangle).intersect_plane(self.periscope.mirror_down.triangle)
+
+            target = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
+                reflect_plane(self.periscope.mirror_up.triangle).reflect_plane(self.periscope.mirror_down.triangle).dir
+            p5 = Point3d()
+            len = 0.25
+            p5.x = (p1_new.x + len * target.x)
+            p5.y = (p1_new.y + len * target.y)
+            p5.z = (p1_new.z + len * target.z)
+            ray_ret = (p5.get_point(), p1_new.get_point(), p2_new.get_point(), p3_new.get_point())
+            ###
+            self.renderer.render(p1_intersect, p2_intersect, p3_intersect, tee, p_aim, ray_ret)
             exit_app, need_rebuild = self.__move_target()
 
             if need_rebuild:
@@ -205,8 +220,7 @@ if __name__ == '__main__':
     if n > 2 and sys.argv[2] == 'net':
         algorithm = SolveAlgorithm.NEURAL_NET
 
-    input_model: str = '2d'
+    input_model: str = 'my_conf'
     algorithm: SolveAlgorithm = SolveAlgorithm.NEURAL_NET
-    # algorithm: SolveAlgorithm = SolveAlgorithm.DIRECT
     app = PeriscopeApplication(input_model, algorithm)
     app.run()

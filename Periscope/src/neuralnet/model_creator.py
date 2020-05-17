@@ -24,4 +24,4 @@ def build_model(model):
     print('Accuracy: %.2f' % (accuracy*100))
 
 if __name__ == '__main__':
-    build_model('2d')
+    build_model('my_conf')

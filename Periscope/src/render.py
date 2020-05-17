@@ -84,7 +84,7 @@ class Renderer:
 
         self.periscope: Periscope = periscope
 
-    def render(self, p1_intersect, p2_intersect, p3_intersect, target: Target, p_aim):
+    def render(self, p1_intersect, p2_intersect, p3_intersect, target: Target, p_aim, ray_ret = None):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -92,11 +92,11 @@ class Renderer:
 
 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
-        self.__render_geometry(p1_intersect, p2_intersect, p3_intersect, target, p_aim)
+        self.__render_geometry(p1_intersect, p2_intersect, p3_intersect, ray_ret, target, p_aim)
         pygame.display.flip()
 
 
-    def __render_geometry(self, p1_intersect, p2_intersect, p3_intersect, target: Target, p_aim):
+    def __render_geometry(self, p1_intersect, p2_intersect, p3_intersect,ray_ret,  target: Target, p_aim):
 
         draw_lines(self.periscope.mirror_down.triangle.get_points(), True)
         draw_lines(self.periscope.mirror_up.triangle.get_points(), True)
@@ -104,6 +104,9 @@ class Renderer:
 
         draw_lines((self.periscope.laser.startPos.get_point(), p1_intersect.get_point(),
                     p2_intersect.get_point(), p3_intersect.get_point(), p_aim.get_point()), False, RED)
+        if ray_ret:
+            draw_lines(ray_ret, False, GREEN)
+
         draw_sphere(target.location.get_point(), target.radius)
         draw_sphere(p_aim.get_point(), 0.004, GREEN)
         draw_cube(self.periscope.laser.startPos.get_point())

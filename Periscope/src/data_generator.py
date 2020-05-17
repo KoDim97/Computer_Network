@@ -274,7 +274,7 @@ class Generator:
 
 
 if __name__ == '__main__':
-    gen = Generator('2d')
+    gen = Generator('my_conf')
     # gen.render_shell()
     gen.writer_shell()
     gen.test_shell()
