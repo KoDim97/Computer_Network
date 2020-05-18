@@ -137,9 +137,9 @@ class PeriscopeApplication:
                          Point3d(tee.location.x, 0.3, 0.5)
                          ))
 
-            if mode == 'retroref':
-                delta = 0.1
-                delta_aim = Point3d(p_aim.x + delta, p_aim.y + delta, p_aim.z)
+            if mode == 'setup':
+                delta = 0.01
+                delta_aim = Point3d(p_aim.x + delta, p_aim.y, p_aim.z)
                 ret_ray = Ray(delta_aim, Vector(p3_intersect, p_aim))
 
                 p3_new = ret_ray.intersect_plane(self.periscope.mirror_3.triangle)
@@ -157,7 +157,7 @@ class PeriscopeApplication:
                 p5.x = (p1_new.x + len * target.x)
                 p5.y = (p1_new.y + len * target.y)
                 p5.z = (p1_new.z + len * target.z)
-                ray_ret = (p5.get_point(), p1_new.get_point(), p2_new.get_point(), p3_new.get_point(), p3_intersect.get_point())
+                ray_ret = (p5.get_point(), p1_new.get_point(), p2_new.get_point(), p3_new.get_point(), delta_aim.get_point(), p_aim.get_point())
                 self.renderer.render(p1_intersect, p2_intersect, p3_intersect, tee, p_aim, ray_ret)
                 ###
             else:
@@ -225,8 +225,8 @@ if __name__ == '__main__':
     if n > 2 and sys.argv[2] == 'net':
         algorithm = SolveAlgorithm.NEURAL_NET
 
-    if n > 3 and sys.argv[3] == 'retroref':
-        mode = 'retroref'
+    if n > 3 and sys.argv[3] == 'setup':
+        mode = 'setup'
     else:
         mode = ''
 

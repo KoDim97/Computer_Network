@@ -101,18 +101,12 @@ class Renderer:
         draw_lines(self.periscope.mirror_down.triangle.get_points(), True)
         draw_lines(self.periscope.mirror_up.triangle.get_points(), True)
         draw_lines(self.periscope.mirror_3.triangle.get_points(), True)
-
+        draw_lines(self.periscope.mirror_3.triangle.get_points(), True)
+        draw_lines((self.periscope.laser.startPos.get_point(), p1_intersect.get_point(),
+                    p2_intersect.get_point(), p3_intersect.get_point(), p_aim.get_point()), False, RED)
 
         if ray_ret:
-            draw_lines(self.periscope.mirror_3.triangle.get_points(), True, BLUE)
-            draw_lines((self.periscope.laser.startPos.get_point(), p1_intersect.get_point(),
-                        p2_intersect.get_point(), p3_intersect.get_point()), False, RED)
             draw_lines(ray_ret, False, RED)
-        else:
-            draw_lines(self.periscope.mirror_3.triangle.get_points(), True)
-            draw_lines((self.periscope.laser.startPos.get_point(), p1_intersect.get_point(),
-                        p2_intersect.get_point(), p3_intersect.get_point(), p_aim.get_point()), False, RED)
-
 
         draw_sphere(target.location.get_point(), target.radius)
         draw_sphere(p_aim.get_point(), 0.004, GREEN)
