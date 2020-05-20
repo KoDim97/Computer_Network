@@ -18,6 +18,7 @@ class TargetMoveMode(Enum):
     KEYBOARD = 1
     RANDOM_MOVE = 2
 
+
 class PeriscopeApplication:
     def __init__(
             self,
@@ -31,7 +32,7 @@ class PeriscopeApplication:
         self.mode = mode
         config = parse(input_model)
 
-        self.periscope:Periscope = Periscope(config)
+        self.periscope: Periscope = Periscope(config)
         p_target = self.periscope.ray_to_aim().intersect_plane(
             Triangle(Point3d(0.4, 0.7, 0.2),
                      Point3d(0.5, 0.4, 0.1),
@@ -44,7 +45,7 @@ class PeriscopeApplication:
         self.renderer = Renderer(self.periscope)
 
         # Shared memory
-        self.down_plane_points = mp.Array('d',6)
+        self.down_plane_points = mp.Array('d', 6)
         self.up_plane_points = mp.Array('d', 6)
         self.plane_3_points = mp.Array('d', 6)
         self.__init_share_memory()
@@ -55,22 +56,29 @@ class PeriscopeApplication:
 
         if algorithm == SolveAlgorithm.DIRECT:
             self.up_plane_process: mp.Process = mp.Process(target=DirectAlgorithm.plane_direct_process,
-                            args=(self.up_plane_queue, self.up_plane_points, self.periscope, MirrorLocation.UP))
+                                                           args=(
+                                                           self.up_plane_queue, self.up_plane_points, self.periscope,
+                                                           MirrorLocation.UP))
             self.down_plane_process: mp.Process = mp.Process(target=DirectAlgorithm.plane_direct_process,
-                            args=( self.down_plane_queue, self.down_plane_points, self.periscope, MirrorLocation.DOWN))
+                                                             args=(self.down_plane_queue, self.down_plane_points,
+                                                                   self.periscope, MirrorLocation.DOWN))
             self.plane_3_process: mp.Process = mp.Process(target=DirectAlgorithm.plane_direct_process,
-                            args=(self.plane_3_queue, self.plane_3_points, self.periscope, MirrorLocation.THIRD))
+                                                          args=(self.plane_3_queue, self.plane_3_points, self.periscope,
+                                                                MirrorLocation.THIRD))
         else:  # algorithm == SolveAlgorithm.NEURAL_NET:
             from keras.models import load_model
             from src.algorithms.net import NeuralNetAlgorithm
             model = load_model(str(get_project_root()) + '\\src\\neuralnet\\' + self.input_model + '_model.h5')
             self.up_plane_process: mp.Process = mp.Process(target=NeuralNetAlgorithm.run,
-                        args=(self.up_plane_queue, self.up_plane_points, self.periscope, MirrorLocation.UP, model))
+                                                           args=(
+                                                           self.up_plane_queue, self.up_plane_points, self.periscope,
+                                                           MirrorLocation.UP, model))
             self.down_plane_process: mp.Process = mp.Process(target=NeuralNetAlgorithm.run,
-                        args=(self.down_plane_queue, self.down_plane_points, self.periscope, MirrorLocation.DOWN, model))
+                                                             args=(self.down_plane_queue, self.down_plane_points,
+                                                                   self.periscope, MirrorLocation.DOWN, model))
             self.plane_3_process: mp.Process = mp.Process(target=NeuralNetAlgorithm.run,
-                        args=(self.plane_3_queue, self.plane_3_points, self.periscope, MirrorLocation.THIRD, model))
-
+                                                          args=(self.plane_3_queue, self.plane_3_points, self.periscope,
+                                                                MirrorLocation.THIRD, model))
 
     def __init_share_memory(self):
         self.down_plane_points[0] = self.periscope.mirror_down.triangle.point_b.x
@@ -93,6 +101,26 @@ class PeriscopeApplication:
         self.plane_3_points[3] = self.periscope.mirror_3.triangle.point_c.x
         self.plane_3_points[4] = self.periscope.mirror_3.triangle.point_c.y
         self.plane_3_points[5] = self.periscope.mirror_3.triangle.point_c.z
+
+    def backray(self, p3_intersect, p_aim, delta):
+        new_taget = Point3d(p_aim.x + delta, p_aim.y, p_aim.z)
+        ret_ray = Ray(new_taget, Vector(p3_intersect, p_aim))
+
+        p3_new = ret_ray.intersect_plane(self.periscope.mirror_3.triangle)
+
+        p2_new = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
+            intersect_plane(self.periscope.mirror_up.triangle)
+
+        p1_new = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
+            reflect_plane(self.periscope.mirror_up.triangle).intersect_plane(self.periscope.mirror_down.triangle)
+
+        target = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
+            reflect_plane(self.periscope.mirror_up.triangle).reflect_plane(self.periscope.mirror_down.triangle).dir
+
+        p5 = Point3d(p1_new.x + 0.25 * target.x, p1_new.y + 0.25 * target.y, p1_new.z + 0.25 * target.z)
+
+        return (p5.get_point(), p1_new.get_point(), p2_new.get_point(), p3_new.get_point(), new_taget.get_point(),
+                   p_aim.get_point())
 
     def __move_target(self) -> (bool, bool):
         exit_app = False
@@ -117,7 +145,7 @@ class PeriscopeApplication:
 
         return exit_app, need_rebuild
 
-    def run (self):
+    def run(self):
         self.up_plane_process.start()
         self.down_plane_process.start()
         self.plane_3_process.start()
@@ -127,9 +155,9 @@ class PeriscopeApplication:
         iteration = 0
         while not exit_app:
             p1_intersect = self.periscope.laser.intersect_plane(self.periscope.mirror_down.triangle)
-            p2_intersect = self.periscope.laser.reflect_plane(self.periscope.mirror_down.triangle).\
+            p2_intersect = self.periscope.laser.reflect_plane(self.periscope.mirror_down.triangle). \
                 intersect_plane(self.periscope.mirror_up.triangle)
-            p3_intersect = self.periscope.laser.reflect_plane(self.periscope.mirror_down.triangle).\
+            p3_intersect = self.periscope.laser.reflect_plane(self.periscope.mirror_down.triangle). \
                 reflect_plane(self.periscope.mirror_up.triangle).intersect_plane(self.periscope.mirror_3.triangle)
             p_aim = self.periscope.ray_to_aim().intersect_plane(
                 Triangle(Point3d(tee.location.x, 0.5, 0.2),
@@ -137,31 +165,11 @@ class PeriscopeApplication:
                          Point3d(tee.location.x, 0.3, 0.5)
                          ))
 
+            ray_ret = None
             if mode == 'setup':
-                delta = 0.01
-                delta_aim = Point3d(p_aim.x + delta, p_aim.y, p_aim.z)
-                ret_ray = Ray(delta_aim, Vector(p3_intersect, p_aim))
+                ray_ret = self.backray(p3_intersect, p_aim, 0.01)
 
-                p3_new = ret_ray.intersect_plane(self.periscope.mirror_3.triangle)
-
-                p2_new = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
-                    intersect_plane(self.periscope.mirror_up.triangle)
-
-                p1_new = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
-                    reflect_plane(self.periscope.mirror_up.triangle).intersect_plane(self.periscope.mirror_down.triangle)
-
-                target = ret_ray.reflect_plane(self.periscope.mirror_3.triangle). \
-                    reflect_plane(self.periscope.mirror_up.triangle).reflect_plane(self.periscope.mirror_down.triangle).dir
-                p5 = Point3d()
-                len = 0.25
-                p5.x = (p1_new.x + len * target.x)
-                p5.y = (p1_new.y + len * target.y)
-                p5.z = (p1_new.z + len * target.z)
-                ray_ret = (p5.get_point(), p1_new.get_point(), p2_new.get_point(), p3_new.get_point(), delta_aim.get_point(), p_aim.get_point())
-                self.renderer.render(p1_intersect, p2_intersect, p3_intersect, tee, p_aim, ray_ret)
-                ###
-            else:
-                self.renderer.render(p1_intersect, p2_intersect, p3_intersect, tee, p_aim)
+            self.renderer.render(p1_intersect, p2_intersect, p3_intersect, tee, p_aim, ray_ret)
 
             exit_app, need_rebuild = self.__move_target()
 
@@ -176,7 +184,7 @@ class PeriscopeApplication:
             self.apply_changes(self.periscope.mirror_down.triangle, self.down_plane_points)
             self.apply_changes(self.periscope.mirror_up.triangle, self.up_plane_points)
             self.apply_changes(self.periscope.mirror_3.triangle, self.plane_3_points)
-            #update log
+            # update log
 
         self.up_plane_process.terminate()
         self.down_plane_process.terminate()
@@ -194,10 +202,14 @@ class PeriscopeApplication:
         output_iteration_list.append('-------------iteration: ' + str(iteration) + '-------------\n')
         output_iteration_list.append(' '.join(['target: ', str(tee.x), str(tee.y), str(tee.z), '\n']))
         output_iteration_list.append(' '.join(['difference: ', str(p_aim.distance_to_point(tee)), '\n']))
-        output_iteration_list.append(' '.join(['up b: ', str(up.point_b.x), str(up.point_b.y), str(up.point_b.z), '\n']))
-        output_iteration_list.append(' '.join(['up c: ', str(up.point_c.x), str(up.point_c.y), str(up.point_c.z), '\n']))
-        output_iteration_list.append(' '.join(['down b: ', str(down.point_b.x), str(down.point_b.y), str(down.point_b.z), '\n']))
-        output_iteration_list.append(' '.join(['down c: ', str(down.point_c.x), str(down.point_c.y), str(down.point_c.z), '\n']))
+        output_iteration_list.append(
+            ' '.join(['up b: ', str(up.point_b.x), str(up.point_b.y), str(up.point_b.z), '\n']))
+        output_iteration_list.append(
+            ' '.join(['up c: ', str(up.point_c.x), str(up.point_c.y), str(up.point_c.z), '\n']))
+        output_iteration_list.append(
+            ' '.join(['down b: ', str(down.point_b.x), str(down.point_b.y), str(down.point_b.z), '\n']))
+        output_iteration_list.append(
+            ' '.join(['down c: ', str(down.point_c.x), str(down.point_c.y), str(down.point_c.z), '\n']))
         output_iteration_list.append(
             ' '.join(['3 b: ', str(m3.point_b.x), str(m3.point_b.y), str(m3.point_b.z), '\n']))
         output_iteration_list.append(
@@ -211,11 +223,11 @@ class PeriscopeApplication:
         f.writelines(self.log_list)
         f.close()
 
-
     @staticmethod
     def apply_changes(plane: Triangle, arr: mp.Array):
         plane.point_b = Point3d(arr[0], arr[1], arr[2])
         plane.point_c = Point3d(arr[3], arr[4], arr[5])
+
 
 if __name__ == '__main__':
     n = len(sys.argv)
